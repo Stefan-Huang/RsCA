@@ -1,0 +1,90 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# RsCA
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of RsCA is to ...
+
+## Installation
+
+You can install the development version of RsCA from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("Stefan-Huang/RsCA")
+```
+
+## Example
+
+This is a basic example which shows you how to solve a common problem:
+
+```{r example}
+library(RsCA)
+## basic example code
+#0、输入基因长度文件和单细胞count表达谱
+load(paste0(system.file(package = 'RsCA'), "/Data/hg19_lengh.rda"))
+scRNA_EXP<-load(paste0(system.file(package = 'RsCA'), "/Data/scRNA_seq.rda"))#示例数据
+#class(scRNA_EXP)
+#[1] "data.frame"
+#row.names(scRNA_EXP) are genes
+
+###Count转换为TPM(可不转换)
+#TPM<-Get.tpm(scRNA_EXP)
+
+#1、获得TPM（tpm）、Counts（cd）、基因名（genes）、细胞名（cells），并合并成列表（r）
+r<-Get.data.tpm(scRNA_EXP)#scRNA_EXP是tpm类型表达谱
+r<-Get.data.count(scRNA_EXP,lengh)#scRNA_EXP是count类型表达谱
+
+#2、输入特征基因集
+gene.sign<-c("")
+#class(gene.sign)
+#[1] "character"
+
+#3、计算特征信号
+Sign_scores<-Get.Score.scRNA(r,gene.sign,num.rounds = 1000,mat.return.flag = T)
+
+#4.1、计算特征细胞占比（计算大于 0 的数值占比）
+prop_positive <-Get.prop(Sign_scores)
+
+#4.2、计算特征细胞的全基因组的Signature
+DeCell_result<-Get.DECell(Sign_scores,25,75)
+
+#5.1、输入RNA-seq表达谱(tpm类型且已标准化)
+options(stringsAsFactors = F)
+RNA_EXP<-load(paste0(system.file(package = 'RsCA'), "/Data/RNA_seq.rda"))#示例数据
+#RNA_EXP <- log2(RNA_EXP + 1)  #将表达量标准化
+#class(RNA_EXP)
+#[1] "data.frame"
+#row.names(RNA_EXP) are genes
+
+#5.2.1、计算单细胞表达谱投射到RNA-seq样本的特征信号
+#Tumor
+Score.RNA<-Get.ptScore.RNA(DeCell_result,RNA_EXP)
+#other tissues
+Sign_scores<-Get.pScore.RNA(r,gene.sign,num.rounds = 1000,mat.return.flag = T)
+
+#5.2.2、直接对表达谱计算特征信号
+r<-Get.data.tpm(RNA_EXP)
+Sign_scores<-Get.Score.RNA(r,gene.sign,num.rounds = 1000,mat.return.flag = T)
+
+##其他：计算scRNA-seq基因表达平均值
+#未去噪
+Mean<-Get.mean1.scRNA(r,gene.sign,num.rounds = 1000,mat.return.flag = T)
+#已去噪
+Mean<-Get.Mean2.scRNA(r,gene.sign,num.rounds = 1000,mat.return.flag = T)
+```
